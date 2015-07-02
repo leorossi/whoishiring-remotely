@@ -1,4 +1,4 @@
-# # Who is hiring Remotely?
+# Who is hiring Remotely?
 
 Grabs [HackerNews](http://news.ycombinator.com)'s  latest "Who is Hiring" story and parse all comments to search which company is hiring remotely.
 
