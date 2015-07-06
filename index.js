@@ -4,8 +4,8 @@ var path = require('path');
 var winston = require('winston');
 
 var request = require('superagent');
-var root = "https://hacker-news.firebaseio.com/v0/"
-
+var root = "https://hacker-news.firebaseio.com/v0/";
+var whoIsHiringAlgoliaSearchUrl = 'http://hn.algolia.com/api/v1/search?query=who+is+hiring';
 var currentIndex = 0;
 var validStory = null;
 
@@ -13,32 +13,37 @@ if (!argv.output) {
   winston.info("Usage: node " + path.basename(__filename) + " --output=OUTPUT_FILE");
   process.exit(1);
 }
-function getAskStories(callback) {
-  var endpoint = "askstories.json";
-  request
-    .get(root + endpoint)
-    .accept('Content-Type', 'application/json')
-    .end(function(err, askResponse) {
+
+function getWhoIsHiringStories(callback) {
+  request.get(whoIsHiringAlgoliaSearchUrl)
+    .end(function(err, resp) {
       if (err) return callback(err);
-      return callback(null, askResponse.body);
-    });  
+      var output = [];
+
+      resp.body.hits.forEach(function(sr) {
+        if (sr.title.match("Who is hiring")) {  
+          output.push(sr.objectID);
+        }
+      });
+      return callback(null, output);
+    });
 }
 
 function getWhoIsHiringComments(id, callback) {
-  winston.info("Getting ask story: " + id)
+  winston.info("Getting ask story: " + id);
   request.get(root + "item/" + id + ".json")
     .end(function(err, response) {
       if (err) return callback(err);
       if (response.body.title.match("Who is hiring")) {
         validStory = response.body;
         // we got the latest 'Who is Hiring' topic so whe can analyze comments
-        return getStoryComments(response.body, callback)
+        return getStoryComments(response.body, callback);
       } else {
         winston.info("Skipping story: " + response.body.title);
         return callback(new Error('No Hiring Story'));
       } 
       
-    })
+    });
 }
 
 function getStoryComments(story, callback) {
@@ -50,23 +55,31 @@ function getStoryComments(story, callback) {
     });
 }
 
-getAskStories(onStoryRetrieved);
+getWhoIsHiringStories(onStoryRetrieved);
 
 function onStoryRetrieved(err, resp) {
+  console.log(err, resp);
   getWhoIsHiringComments(resp[currentIndex], function(err, comments) {
-    winston.info("Grabbed " + comments.length + " comments");
     if (err) {
       if (err.message == 'No Hiring Story') {
         // Switch to next story;
         currentIndex++;
-        return getAskStories(onStoryRetrieved);
+        if (currentIndex >= resp.length) {
+          // Got to the end with no result:
+          winston.error('No ASK Stories found, sorry!');
+        } else {
+          return getWhoIsHiringStories(onStoryRetrieved);  
+        }
+        
       } else {
         throw err;
       }
     } else {
+      winston.info("Grabbed " + comments.length + " comments");
       return getRemoteJobOffers(comments, function(err, stories) {
+        if (err) throw err;
         return generateHTML(stories);
-      })
+      });
     }
 
   });
@@ -85,7 +98,7 @@ function getRemoteJobOffers(comments, callback) {
           // Some stories will give me permission denied
         } else {
           if (!resp.body.parent) {
-            // winston.info(resp.body);
+            winston.info(resp.body);
           } else {
             if (resp.body.parent != validStory.id ) {
               throw new Error('Comment is not for the valid story (' + resp.body.parent + ' != ' + validStory.id + ')');
