@@ -3,7 +3,7 @@
 Grabs [HackerNews](http://news.ycombinator.com)'s  latest "Who is Hiring" story and parse all comments to search which company is hiring remotely.
 
 ## Why?
-Because I'm currently (June 2015) looking for a remote job and it's hard to parse that page manually, so I created this 15-minutes program to help me remove the comments that don't mention the word "remote"
+Because I'm currently (~~June 2015~~ April 2016) looking for a remote job and it's hard to parse that page manually, so I created this 15-minutes program to help me remove the comments that don't mention the word "remote"
 
 ## Install
 
