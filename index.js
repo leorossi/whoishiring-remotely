@@ -2,6 +2,7 @@ var argv = require('optimist').argv;
 var fs = require('fs');
 var path = require('path');
 var winston = require('winston');
+var moment = require('moment');
 
 var request = require('superagent');
 var root = "https://hacker-news.firebaseio.com/v0/";
@@ -18,11 +19,12 @@ function getWhoIsHiringStories(callback) {
   request.get(whoIsHiringAlgoliaSearchUrl)
     .end(function(err, resp) {
       if (err) return callback(err);
-      var output = [];
-
+      var output = '';
+      var current = getCurrentMonthAndYear();
       resp.body.hits.forEach(function(sr) {
-        if (sr.title.match("Who is hiring")) {  
-          output.push(sr.objectID);
+
+        if (sr.title.match("Who is hiring") && sr.title.match(current)) {  
+          output = sr.objectID;
         }
       });
       return callback(null, output);
@@ -58,30 +60,20 @@ function getStoryComments(story, callback) {
 getWhoIsHiringStories(onStoryRetrieved);
 
 function onStoryRetrieved(err, resp) {
-  console.log(err, resp);
-  getWhoIsHiringComments(resp[currentIndex], function(err, comments) {
+  getWhoIsHiringComments(resp, function(err, comments) {
     if (err) {
       if (err.message == 'No Hiring Story') {
         // Switch to next story;
-        currentIndex++;
-        if (currentIndex >= resp.length) {
-          // Got to the end with no result:
-          winston.error('No ASK Stories found, sorry!');
-        } else {
-          return getWhoIsHiringStories(onStoryRetrieved);  
-        }
-        
-      } else {
-        throw err;
+          return winston.error('No ASK Stories found, sorry!');
       }
+      throw err;
     } else {
       winston.info("Grabbed " + comments.length + " comments");
       return getRemoteJobOffers(comments, function(err, stories) {
         if (err) throw err;
         return generateHTML(stories);
       });
-    }
-
+    }  
   });
 };
 
@@ -119,6 +111,11 @@ function getRemoteJobOffers(comments, callback) {
   
 };
   
+function getCurrentMonthAndYear() {
+  var today = moment().format('MMMM YYYY');
+  return today;
+}
+
 function generateHTML(stories) {
   var output = "<html><head>"
   output += "<title>" + validStory.title + "</title>";
