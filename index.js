@@ -27,6 +27,9 @@ function getWhoIsHiringStories(callback) {
           output = sr.objectID;
         }
       });
+      if (output === '') {
+        return callback(new Error(`'Who is hiring' thread not found for ${current}`));
+      }
       return callback(null, output);
     });
 }
@@ -60,6 +63,9 @@ function getStoryComments(story, callback) {
 getWhoIsHiringStories(onStoryRetrieved);
 
 function onStoryRetrieved(err, resp) {
+  if (err) {
+    return winston.error(err.message);
+  }
   getWhoIsHiringComments(resp, function(err, comments) {
     if (err) {
       if (err.message == 'No Hiring Story') {
