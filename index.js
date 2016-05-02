@@ -9,10 +9,17 @@ var root = "https://hacker-news.firebaseio.com/v0/";
 var whoIsHiringAlgoliaSearchUrl = 'http://hn.algolia.com/api/v1/search?query=who+is+hiring';
 var currentIndex = 0;
 var validStory = null;
+var month;
 
 if (!argv.output) {
   winston.info("Usage: node " + path.basename(__filename) + " --output=OUTPUT_FILE");
   process.exit(1);
+}
+
+if (argv.month && argv.month.match(/[a-z]+ \d{4}/i)) {
+  month = argv.month; 
+} else {
+  month = getCurrentMonthAndYear();
 }
 
 function getWhoIsHiringStories(callback) {
@@ -20,10 +27,8 @@ function getWhoIsHiringStories(callback) {
     .end(function(err, resp) {
       if (err) return callback(err);
       var output = '';
-      var current = getCurrentMonthAndYear();
       resp.body.hits.forEach(function(sr) {
-
-        if (sr.title.match("Who is hiring") && sr.title.match(current)) {  
+        if (sr.title.match("Who is hiring") && sr.title.match(month)) {
           output = sr.objectID;
         }
       });
@@ -101,7 +106,6 @@ function getRemoteJobOffers(comments, callback) {
             if (resp.body.parent != validStory.id ) {
               throw new Error('Comment is not for the valid story (' + resp.body.parent + ' != ' + validStory.id + ')');
             }
-
             if (!resp.body.deleted && resp.body.text.match(/remote/i)) {
               valid.push(resp.body);
             }  
@@ -110,11 +114,8 @@ function getRemoteJobOffers(comments, callback) {
             return callback(null, valid);
           }  
         }
-        
       });
   });
-
-  
 };
   
 function getCurrentMonthAndYear() {

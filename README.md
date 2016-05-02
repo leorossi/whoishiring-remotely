@@ -13,3 +13,7 @@ Because I'm currently (~~June 2015~~ April 2016) looking for a remote job and it
 `node index.js --output=OUTPUT_FILE`
 
 A basic HTML File will be generated with only the comments that mention the word "Remote". Sometimes a comment will say "[...] no remote allowed [...]" I'll try to improve the parser!
+
+### Options
+
+- `--month <MM YYYY>` will search the thread for the specified month and year
