@@ -1,13 +1,20 @@
+'use strict';
+
 var argv = require('optimist').argv;
 var fs = require('fs');
 var path = require('path');
 var winston = require('winston');
 var moment = require('moment');
-
+var sqlite = require('sqlite3').verbose();
 var request = require('superagent');
+
+var config = require('./config');
+
 var root = "https://hacker-news.firebaseio.com/v0/";
 var whoIsHiringAlgoliaSearchUrl = 'http://hn.algolia.com/api/v1/search?query=who+is+hiring';
-var currentIndex = 0;
+
+var db = new sqlite.Database(config.database);
+
 var validStory = null;
 var month;
 
@@ -33,7 +40,7 @@ function getWhoIsHiringStories(callback) {
         }
       });
       if (output === '') {
-        return callback(new Error(`'Who is hiring' thread not found for ${current}`));
+        return callback(new Error(`'Who is hiring' thread not found for ${month}`));
       }
       return callback(null, output);
     });
@@ -82,7 +89,10 @@ function onStoryRetrieved(err, resp) {
       winston.info("Grabbed " + comments.length + " comments");
       return getRemoteJobOffers(comments, function(err, stories) {
         if (err) throw err;
-        return generateHTML(stories);
+        stories.forEach(function(story) {
+          return storePost(story);
+        });
+        return generateHTML();
       });
     }  
   });
@@ -123,19 +133,46 @@ function getCurrentMonthAndYear() {
   return today;
 }
 
-function generateHTML(stories) {
+function generateHTML() {
   var output = "<html><head>"
   output += "<title>" + validStory.title + "</title>";
   output += "</head><body>";
   output += "<h1>" + validStory.title + " - ONLY REMOTE! </h1>";
-  stories.forEach(function(story) {
-    output += "<hr>";
-    output += story.text;
+  db.each(`SELECT * FROM stories WHERE month = '${month}'`, function(err, row) {
+    output += `
+<hr>
+<h3>${row.title}</h3>
+<p>${row.body}</p>
+    `;
+  }, function() {
+    output += "</body></html>";  
+    var ws = fs.createWriteStream(argv.output);
+    var buf = new Buffer(output);
+    ws.write(buf);
+    ws.end();
+    winston.info('Output file created!');  
   });
-  output += "</body></html>";  
-  var ws = fs.createWriteStream(argv.output);
-  var buf = new Buffer(output);
-  ws.write(buf);
-  ws.end();
-  winston.info('Output file created!');
+  
+}
+
+function storePost(data) {
+  const story_id = data.id;
+  const author = data.by;
+  var body = data.text;
+  var title = 'NO TITLE';
+  const pIndex = data.text.indexOf('<p>');
+  if (pIndex !== -1) {
+    title = data.text.substr(0, pIndex);
+    body = data.text.substr(pIndex + 3);
+  }
+  db.run(`INSERT INTO stories (story_id, month, author, body, title) VALUES
+    (${story_id}, '${month}', '${author}', '${body}', '${title}')`, function(err) {
+      if (err) {
+        if (err.code === 'SQLITE_CONSTRAINT') {
+          winston.warn(`Duplicate entry found: ${story_id}`);
+        } else {
+          winston.error(`Error storing post: ${err.message}`);
+        }
+      }
+    });
 }

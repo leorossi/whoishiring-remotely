@@ -1,0 +1,27 @@
+{
+  "name": "whoishiring-remotely",
+  "version": "1.0.0",
+  "description": "Search for remote jobs on HackerNews 'Who is hiring' threads",
+  "main": "index.js",
+  "dependencies": {
+    "moment": "^2.12.0",
+    "optimist": "^0.6.1",
+    "superagent": "^1.2.0",
+    "winston": "^1.0.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "scripts/install.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leorossi/whoishiring-remotely.git"
+  },
+  "author": "Leonardo Rossi <leonardo.rossi@gmail.com> (http://leorossi.it/)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/leorossi/whoishiring-remotely/issues"
+  },
+  "homepage": "https://github.com/leorossi/whoishiring-remotely#readme"
+}
