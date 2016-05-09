@@ -145,10 +145,10 @@ function generateHTML() {
   output += "<title>" + validStory.title + "</title>";
   output += "</head><body>";
   output += "<h1>" + validStory.title + " - ONLY REMOTE! </h1>";
-  db.each(`SELECT * FROM stories WHERE month = '${month}'`, function(err, row) {
+  db.each(`SELECT * FROM stories WHERE month = '${month}' ORDER BY id DESC`, function(err, row) {
     output += `
 <hr>
-<h3>${row.title}</h3>
+<h3>${row.title} - ID: ${row.story_id}</h3>
 <p>${row.body}</p>
     `;
   }, function() {
