@@ -79,6 +79,7 @@ function onStoryRetrieved(err, resp) {
     return winston.error(err.message);
   }
   getWhoIsHiringComments(resp, function(err, comments) {
+    var stored = 0;
     if (err) {
       if (err.message == 'No Hiring Story') {
         // Switch to next story;
@@ -90,9 +91,15 @@ function onStoryRetrieved(err, resp) {
       return getRemoteJobOffers(comments, function(err, stories) {
         if (err) throw err;
         stories.forEach(function(story) {
-          return storePost(story);
+          return storePost(story, onStore);
         });
-        return generateHTML();
+
+        function onStore() {
+          stored++;
+          if (stored === stories.length) {
+            return generateHTML();
+          }
+        }
       });
     }  
   });
@@ -155,7 +162,7 @@ function generateHTML() {
   
 }
 
-function storePost(data) {
+function storePost(data, callback) {
   const story_id = data.id;
   const author = data.by;
   var body = data.text;
@@ -173,6 +180,9 @@ function storePost(data) {
         } else {
           winston.error(`Error storing post: ${err.message}`);
         }
+      } else {
+        winston.info(`Found new entry: ${story_id}`);
       }
+      return callback();
     });
 }
